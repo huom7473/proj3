@@ -1,3 +1,10 @@
+# file system stuff, project stuff
+*.img
+*.html
+*.csv
+fs
+lab3a
+
 # Prerequisites
 *.d
 
