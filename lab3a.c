@@ -10,9 +10,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
 
 typedef struct ext2_super_block super_block;
 typedef struct ext2_group_desc group_desc;
+typedef struct ext2_inode inode;
 
 super_block* sb; //access super block globally
 group_desc* group; //assume we only need to deal with single groups
@@ -25,7 +27,7 @@ unsigned long calculate_offset(unsigned block_num) {
 void read_super_block() {
     sb = malloc(sizeof(super_block));
     if (!sb) {
-        fprintf(stderr, "%s: error in buffer allocation\n", argv[0]);
+        fprintf(stderr, "error in buffer allocation\n");
         exit(2);
     }
 
@@ -46,10 +48,10 @@ void read_super_block() {
 void read_group() {
     group = malloc(sizeof(group_desc));
     if (!group) {
-        fprintf(stderr, "%s: error in buffer allocation\n", argv[0]);
+        fprintf(stderr, "error in buffer allocation\n");
         exit(2);
     }
-    
+
     pread(fd, group, sizeof(group_desc), calculate_offset(sb->s_first_data_block + 1));
     fprintf(stdout,"GROUP,%d,%d,%d,%d,%d,%d,%d,%d\n", 0,
             sb->s_blocks_count, sb->s_inodes_count, group->bg_free_blocks_count,
@@ -60,14 +62,14 @@ void scan_free_blocks() {
     unsigned int bsize = EXT2_MIN_BLOCK_SIZE << sb->s_log_block_size;
     unsigned char *buffer = malloc(bsize);
     if (!buffer) {
-        fprintf(stderr, "%s: error in buffer allocation\n", argv[0]);
+        fprintf(stderr, "error in buffer allocation\n");
         exit(2);
     }
 
     pread(fd, buffer, bsize, calculate_offset(group->bg_block_bitmap));
 
     unsigned int byte, offset;
-    for(unsigned i = 0; i < sb->s_blocks_per_group; ++i) {
+    for (unsigned i = 0; i < sb->s_blocks_per_group; ++i) {
         byte = i / 8; // 8 blocks represented per byte
         offset = i % 8; //offset from that byte
         if (!(buffer[byte] >> offset & 0x1)) { //find the right bit, if it's 0 the if statement is true
@@ -81,14 +83,14 @@ void scan_free_inodes() {
     unsigned int bsize = EXT2_MIN_BLOCK_SIZE << sb->s_log_block_size;
     unsigned char *buffer = malloc(bsize);
     if (!buffer) {
-        fprintf(stderr, "%s: error in buffer allocation\n", argv[0]);
+        fprintf(stderr, "error in buffer allocation\n");
         exit(2);
     }
 
     pread(fd, buffer, bsize, calculate_offset(group->bg_inode_bitmap));
 
     unsigned int byte, offset;
-    for(unsigned i = 0; i < sb->s_inodes_per_group; ++i) {
+    for (unsigned i = 0; i < sb->s_inodes_per_group; ++i) {
         byte = i / 8; // 8 blocks represented per byte
         offset = i % 8; //offset from that byte
         if (!(buffer[byte] >> offset & 0x1)) { //find the right bit, if it's 0 the if statement is true
@@ -96,6 +98,64 @@ void scan_free_inodes() {
         }
     }
     free(buffer);
+}
+
+static void format_inode(inode node, unsigned inum) { //auxiliary function to print inode information
+    char type, timestr_c[20], timestr_m[20], timestr_a[20];
+    //the value of S_IFLNK is 0xA000 which overlaps bits with regular file (0x8000), so we can't simply
+    //rely on the value itself as a bitmask
+    //there is also an overlap of bits with socket and directory, so we have to do this for all types
+    if ((node.i_mode & 0xF000) == S_IFLNK)
+        type = 's';
+    else if ((node.i_mode & 0xF000) == S_IFREG)
+        type = 'f';
+    else if ((node.i_mode & 0xF000) == S_IFDIR)
+        type = 'd';
+    else
+        type = '?';
+
+    time_t ctime = (time_t) node.i_ctime;
+    time_t mtime = (time_t) node.i_mtime;
+    time_t atime = (time_t) node.i_atime;
+    struct tm *tmp;
+
+    tmp = gmtime(&ctime);
+    strftime(timestr_c, sizeof(timestr_c), "%m/%d/%y %H:%M:%S", tmp);
+
+    tmp = gmtime(&mtime);
+    strftime(timestr_m, sizeof(timestr_m), "%m/%d/%y %H:%M:%S", tmp);
+
+    tmp = gmtime(&atime);
+    strftime(timestr_a, sizeof(timestr_a), "%m/%d/%y %H:%M:%S", tmp);
+
+    fprintf(stdout, "INODE,%u,%c,%o,%hu,%hu,%hu,%s,%s,%s,%u,%u\n", //TODO: add the rest of the fields
+            inum, type, node.i_mode & 0x0FFF, node.i_uid, node.i_gid, node.i_links_count, timestr_c,
+            timestr_m, timestr_a, node.i_size, node.i_blocks);
+}
+
+void scan_inodes() {
+    unsigned int bsize = EXT2_MIN_BLOCK_SIZE << sb->s_log_block_size;
+    unsigned int inodes_per_block = bsize/sb->s_inode_size;
+    unsigned int inode_table_blocks = sb->s_inodes_per_group/inodes_per_block;
+    inode *buffer = malloc(bsize);
+    if (!buffer) {
+        fprintf(stderr, "error in buffer allocation\n");
+        exit(2);
+    }
+
+    inode node;
+    for (unsigned table_number = 0; table_number < inode_table_blocks; ++table_number) {
+        if (pread(fd, buffer, bsize, calculate_offset(group->bg_inode_table + table_number)) != bsize) {
+            fprintf(stderr, "error reading from inode table, block %u\n", table_number);
+            exit(2);
+        }
+        for (unsigned offset = 0; offset < inodes_per_block; ++offset) { //go through each inode in the block
+            node = buffer[offset];
+            if (node.i_mode && node.i_links_count) { //if inode is allocated
+                format_inode(node, table_number * inodes_per_block + offset + 1);
+            }
+        }
+    }
 }
 
 int main(int argc, char **argv) {
@@ -116,5 +176,6 @@ int main(int argc, char **argv) {
     read_group();
     scan_free_blocks();
     scan_free_inodes();
+    scan_inodes();
     exit(0);
 }
