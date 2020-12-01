@@ -11,14 +11,21 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
-
+#include <signal.h>
 typedef struct ext2_super_block super_block;
 typedef struct ext2_group_desc group_desc;
+typedef struct ext2_dir_entry dir_entry;
 typedef struct ext2_inode inode;
 
 super_block* sb; //access super block globally
 group_desc* group; //assume we only need to deal with single groups
 int fd;
+
+void handle_segfault(int sig){
+    fprintf(stderr, "Exit status 4: Caught segmentation fault. %d\n", sig);
+    exit(4);
+}
+
 
 unsigned long calculate_offset(unsigned block_num) {
     return block_num * (EXT2_MIN_BLOCK_SIZE << sb->s_log_block_size);
@@ -100,6 +107,29 @@ void scan_free_inodes() {
     free(buffer);
 }
 
+void read_directory_entry(unsigned inum, unsigned offset){
+    
+    dir_entry entry;
+    unsigned bytes_read = 0;
+
+    while(bytes_read < 1024){
+        if (pread(fd, &entry, sizeof(dir_entry), calculate_offset(offset) +bytes_read) < 0){
+            fprintf(stderr, "ERROR: failed to read\n");
+            exit(1);
+        }
+        if(entry.inode != 0){
+            
+            fprintf(stdout, "DIRENT,%d,%d,%d,%d,%d,'", inum, bytes_read, entry.inode, entry.rec_len, entry.name_len);
+            for(unsigned i = 0; i < entry.name_len; i++){
+                fprintf(stdout, "%c", entry.name[i]);
+            }
+            fprintf(stdout,"'\n");
+        }
+        bytes_read += entry.rec_len;
+    }
+}
+
+
 static void format_inode(inode node, unsigned inum) { //auxiliary function to print inode information
     char type, timestr_c[20], timestr_m[20], timestr_a[20];
     //the value of S_IFLNK is 0xA000 which overlaps bits with regular file (0x8000), so we can't simply
@@ -131,6 +161,14 @@ static void format_inode(inode node, unsigned inum) { //auxiliary function to pr
     fprintf(stdout, "INODE,%u,%c,%o,%hu,%hu,%hu,%s,%s,%s,%u,%u\n", //TODO: add the rest of the fields
             inum, type, node.i_mode & 0x0FFF, node.i_uid, node.i_gid, node.i_links_count, timestr_c,
             timestr_m, timestr_a, node.i_size, node.i_blocks);
+
+    if(type == 'd'){
+        for(unsigned entry_number = 0; entry_number < 12; entry_number++){
+            if(node.i_block[entry_number] != 0){
+                read_directory_entry(inum, node.i_block[entry_number]);
+            }
+        }
+    }
 }
 
 void scan_inodes() {
@@ -163,7 +201,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "usage: %s [image]\n", argv[0]);
         exit(1);
     }
-
+    signal(SIGSEGV, handle_segfault);
     fd = open(argv[1], O_RDONLY);
     if (fd == -1) {
         fprintf(stderr, "%s: error opening image file %s: %s\n", argv[0], argv[1], strerror(errno));
