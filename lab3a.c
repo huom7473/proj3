@@ -13,6 +13,8 @@
 
 typedef struct ext2_super_block super_block;
 
+super_block* sb; //access super block globally
+
 int main(int argc, char **argv) {
     if (argc != 2) { //./lab3a [img name]
         fprintf(stderr, "usage: %s [image]\n", argv[0]);
@@ -26,8 +28,14 @@ int main(int argc, char **argv) {
     }
 
     fprintf(stderr, "size of super block struct: %lu\n", sizeof(super_block)); //block size ?
-    super_block* sb = malloc(sizeof(super_block));
+    sb = malloc(sizeof(super_block));
     pread(fd, sb, sizeof(super_block), 1024); //read super block
+
+    if (sb->s_magic != EXT2_SUPER_MAGIC) {
+        fprintf(stderr, "%s: super block magic value check failed\n", argv[0]);
+        exit(1);
+    }
+    
     unsigned long bsize = EXT2_MIN_BLOCK_SIZE << sb->s_log_block_size;
     fprintf(stderr, "size of block according to superblock: %lu\n", bsize);
     exit(0);
