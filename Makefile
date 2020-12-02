@@ -4,13 +4,12 @@
 
 CC=gcc
 CFLAGS=-Wall -Wextra
-# LINK=-lm -lmraa
 
-.PHONY: clean dist
+.PHONY: clean dist default
 
 default: lab3a
 
-lab3a: lab3a.c
+lab3a: lab3a.c ext2_fs.h
 	@$(CC) -o lab3a $(CFLAGS) lab3a.c
 
 clean:

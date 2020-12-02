@@ -202,7 +202,7 @@ static void format_inode(inode node, unsigned inum) { //auxiliary function to pr
         for(unsigned indirect_offset = 0; indirect_offset < bsize; indirect_offset += 4){
             if(*(indirect_pointers + indirect_offset/4) != 0){
                 int indirect_logical_offset = (indirect_offset/4) * 256;
-                fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 2, 12 + indirect_logical_offset +256, node.i_block[13], *(indirect_pointers + indirect_offset/4));
+                fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 2, 12 + indirect_logical_offset + 256, node.i_block[13], *(indirect_pointers + indirect_offset/4));
                 __u32* block_pointers = malloc(bsize);
                 pread(fd, block_pointers, bsize, calculate_offset(*(indirect_pointers + indirect_offset/4)));
                 for(unsigned ptr = 0; ptr < bsize; ptr += 4){
@@ -234,7 +234,7 @@ static void format_inode(inode node, unsigned inum) { //auxiliary function to pr
                 for(unsigned indirect_offset = 0; indirect_offset < bsize; indirect_offset += 4){
                     if(*(indirect_pointers + indirect_offset/4) != 0){
                         int indirect_logical_offset = (indirect_offset/4) * 256;
-                        fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 2, 12 + double_indirect_logical_offset +256 + 65536 + indirect_logical_offset, *(double_indirect_pointers + double_indirect_offset/4), *(indirect_pointers + indirect_offset/4));
+                        fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 2, 12 + double_indirect_logical_offset + 256 + 65536 + indirect_logical_offset, *(double_indirect_pointers + double_indirect_offset/4), *(indirect_pointers + indirect_offset/4));
                         __u32* block_pointers = malloc(bsize);
                         pread(fd, block_pointers, bsize, calculate_offset(*(indirect_pointers + indirect_offset/4)));
                         for(unsigned ptr = 0; ptr < bsize; ptr += 4){
@@ -243,7 +243,7 @@ static void format_inode(inode node, unsigned inum) { //auxiliary function to pr
                                     read_directory_entry(inum, *(block_pointers + ptr/4));
                                 }
                                 int logical_offset = (ptr/4);
-                                fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 1, 12 + double_indirect_logical_offset +256 + 65536 + indirect_logical_offset + logical_offset, *(indirect_pointers + indirect_offset/4), *(block_pointers + ptr/4));
+                                fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 1, 12 + double_indirect_logical_offset + 256 + 65536 + indirect_logical_offset + logical_offset, *(indirect_pointers + indirect_offset/4), *(block_pointers + ptr/4));
                             }
                         }
                         free(block_pointers);
