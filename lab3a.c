@@ -113,7 +113,7 @@ void read_directory_entry(unsigned inum, unsigned offset){
     unsigned bytes_read = 0;
 
     while(bytes_read < 1024){
-        if (pread(fd, &entry, sizeof(dir_entry), calculate_offset(offset) +bytes_read) < 0){
+        if (pread(fd, &entry, sizeof(dir_entry), calculate_offset(offset) + bytes_read) < 0){
             fprintf(stderr, "ERROR: failed to read\n");
             exit(1);
         }
@@ -158,9 +158,19 @@ static void format_inode(inode node, unsigned inum) { //auxiliary function to pr
     tmp = gmtime(&atime);
     strftime(timestr_a, sizeof(timestr_a), "%m/%d/%y %H:%M:%S", tmp);
 
-    fprintf(stdout, "INODE,%u,%c,%o,%hu,%hu,%hu,%s,%s,%s,%u,%u\n", //TODO: add the rest of the fields
+    unsigned long long filesize = node.i_dir_acl; //upper bits
+    filesize = (filesize << 32) | node.i_size; // add lower bits
+
+    fprintf(stdout, "INODE,%u,%c,%o,%hu,%hu,%hu,%s,%s,%s,%llu,%u", //print everything up to the block pointers
             inum, type, node.i_mode & 0x0FFF, node.i_uid, node.i_gid, node.i_links_count, timestr_c,
-            timestr_m, timestr_a, node.i_size, node.i_blocks);
+            timestr_m, timestr_a, filesize, node.i_blocks);
+
+    if (type != 's' || filesize > 60) { //normal case, where file is not a symlink where size <= 60 bytes
+        for(int i = 0; i < 15; ++i)
+            fprintf(stdout, ",%u", node.i_block[i]);
+    }
+
+    fprintf(stdout, "\n"); //terminate inode description with a newline regardless of file type
 
     if(type == 'd'){
         for(unsigned entry_number = 0; entry_number < 12; entry_number++){
