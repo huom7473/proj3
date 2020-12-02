@@ -179,6 +179,82 @@ static void format_inode(inode node, unsigned inum) { //auxiliary function to pr
             }
         }
     }
+    unsigned bsize = EXT2_MIN_BLOCK_SIZE << sb->s_log_block_size;
+    if(node.i_block[12] != 0){
+        __u32* block_pointers = malloc(bsize);
+        pread(fd, block_pointers, bsize, calculate_offset(node.i_block[12]));
+
+        for(unsigned ptr = 0; ptr < bsize; ptr += 4){
+            if(*(block_pointers + ptr/4) != 0){
+                if(type == 'd'){
+                    read_directory_entry(inum, *(block_pointers + ptr/4));
+                }
+                int logical_offset = (ptr/4);
+                fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 1, 12 + logical_offset, node.i_block[12], *(block_pointers + ptr/4));
+            }
+        }
+        free(block_pointers);
+    } 
+
+    if(node.i_block[13] != 0){
+        __u32* indirect_pointers = malloc(bsize);
+        pread(fd, indirect_pointers, bsize, calculate_offset(node.i_block[13]));
+        for(unsigned indirect_offset = 0; indirect_offset < bsize; indirect_offset += 4){
+            if(*(indirect_pointers + indirect_offset/4) != 0){
+                int indirect_logical_offset = (indirect_offset/4) * 256;
+                fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 2, 12 + indirect_logical_offset +256, node.i_block[13], *(indirect_pointers + indirect_offset/4));
+                __u32* block_pointers = malloc(bsize);
+                pread(fd, block_pointers, bsize, calculate_offset(*(indirect_pointers + indirect_offset/4)));
+                for(unsigned ptr = 0; ptr < bsize; ptr += 4){
+                    if(*(block_pointers + ptr/4) != 0){
+                        if(type == 'd'){
+                            read_directory_entry(inum, *(block_pointers + ptr/4));
+                        }
+                        int logical_offset = (ptr/4);
+                        fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 1, 12 + indirect_logical_offset + 256 + logical_offset, *(indirect_pointers + indirect_offset/4), *(block_pointers + ptr/4));
+                    }
+                }
+                free(block_pointers);
+            }
+        }
+        free(indirect_pointers);
+    }
+
+    if(node.i_block[14] != 0){
+        __u32* double_indirect_pointers = malloc(bsize);
+        pread(fd, double_indirect_pointers, bsize, calculate_offset(node.i_block[14]));
+        for(unsigned double_indirect_offset = 0; double_indirect_offset < bsize; double_indirect_offset += 4){
+            
+            if(*(double_indirect_pointers + double_indirect_offset/4) != 0){
+                int double_indirect_logical_offset = (double_indirect_offset/4) * 65536;
+                fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 3, 12 + double_indirect_logical_offset + 256 + 65536, node.i_block[14], *(double_indirect_pointers + double_indirect_offset/4));
+                
+                __u32* indirect_pointers = malloc(bsize);
+                pread(fd, indirect_pointers, bsize, calculate_offset(*(double_indirect_pointers + double_indirect_offset/4)));
+                for(unsigned indirect_offset = 0; indirect_offset < bsize; indirect_offset += 4){
+                    if(*(indirect_pointers + indirect_offset/4) != 0){
+                        int indirect_logical_offset = (indirect_offset/4) * 256;
+                        fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 2, 12 + double_indirect_logical_offset +256 + 65536 + indirect_logical_offset, *(double_indirect_pointers + double_indirect_offset/4), *(indirect_pointers + indirect_offset/4));
+                        __u32* block_pointers = malloc(bsize);
+                        pread(fd, block_pointers, bsize, calculate_offset(*(indirect_pointers + indirect_offset/4)));
+                        for(unsigned ptr = 0; ptr < bsize; ptr += 4){
+                            if(*(block_pointers + ptr/4) != 0){
+                                if(type == 'd'){
+                                    read_directory_entry(inum, *(block_pointers + ptr/4));
+                                }
+                                int logical_offset = (ptr/4);
+                                fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n", inum, 1, 12 + double_indirect_logical_offset +256 + 65536 + indirect_logical_offset + logical_offset, *(indirect_pointers + indirect_offset/4), *(block_pointers + ptr/4));
+                            }
+                        }
+                        free(block_pointers);
+                    }
+                }
+                free(indirect_pointers);
+            }
+        }
+        free(double_indirect_pointers);
+    }
+
 }
 
 void scan_inodes() {
@@ -218,7 +294,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    fprintf(stderr, "size of super block struct: %lu\n", sizeof(super_block)); //block size ?
+    //fprintf(stderr, "size of super block struct: %lu\n", sizeof(super_block)); //block size ?
     
     read_super_block();
     read_group();

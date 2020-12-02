@@ -1,6 +1,6 @@
 # NAME: Michael Huo, Tygan Zeng
-# EMAIL: huom7473@ucla.edu, 
-# ID: 705408359, 
+# EMAIL: huom7473@ucla.edu, zengtygan@gmail.com
+# ID: 705408359, 705391071
 
 CC=gcc
 CFLAGS=-Wall -Wextra
@@ -17,4 +17,4 @@ clean:
 	@rm -f lab3a lab3a-705408359.tar.gz
 
 dist:
-	@tar -czf lab3a-705408359.tar.gz lab3a.c Makefile README
+	@tar -czf lab3a-705408359.tar.gz lab3a.c ext2_fs.h Makefile README
