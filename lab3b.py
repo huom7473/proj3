@@ -14,11 +14,11 @@ block_dictionary = dict()
 
 def generate_free_list():
     for i in linesdict['BFREE']:
-        block_free_list_set.add(int(i[1]))
+        block_free_list_set.add(i[1])
 
 def check_unreferenced_blocks():
     for i in range(reserved_boundary, num_blocks):
-        if (not i in block_free_list_set) and (not i in block_allocated_set):
+        if (i not in block_free_list_set) and (i not in block_allocated_set):
             print(f"UNREFERENCED BLOCK {i}")
         if (i in block_free_list_set) and (i in block_allocated_set):
             print(f"ALLOCATED BLOCK {i} ON FREELIST")
@@ -28,7 +28,7 @@ def scan_blocks():
     for i in linesdict['INODE']:
         if i[2] == 'f' or i[2] == 'd':
             for j in range(15):
-                if int(i[12+j]) < 0 or int(i[12+j]) > num_blocks:
+                if i[12+j] < 0 or i[12+j] > num_blocks:
                     if j < 12:
                         print(f"INVALID BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {j}")
                     elif j == 12:
@@ -37,7 +37,7 @@ def scan_blocks():
                         print(f"INVALID DOUBLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 268")
                     elif j == 14:
                         print(f"INVALID TRIPLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 65804")
-                elif int(i[12+j]) > 0 and int(i[12+j]) < reserved_boundary:
+                elif i[12+j] > 0 and i[12+j] < reserved_boundary:
                     if j < 12:
                         print(f"RESERVED BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {j}")
                     elif j == 12:
@@ -47,9 +47,9 @@ def scan_blocks():
                     elif j == 14:
                         print(f"RESERVED TRIPLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 65804")
                 else:
-                    block_allocated_set.add(int(i[12+j]))
+                    block_allocated_set.add(i[12+j])
 
-                if int(i[12+j]) in block_dictionary:
+                if i[12+j] in block_dictionary:
                     if j < 12:
                         print(f"DUPLICATE BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {j}")
                     elif j == 12:
@@ -58,22 +58,22 @@ def scan_blocks():
                         print(f"DUPLICATE DOUBLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 268")
                     elif j == 14:
                         print(f"DUPLICATE TRIPLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 65804")
-                    block_printed_set.add(int(i[12+j]))
-                elif int(i[12+j]) != 0:
+                    block_printed_set.add(i[12+j])
+                elif i[12+j] != 0:
                     if j < 12:
-                        block_dictionary[int(i[12+j])] = (0, i[1], j)
+                        block_dictionary[i[12+j]] = (0, i[1], j)
                     elif j == 12: 
-                        block_dictionary[int(i[12+j])] = (1, i[1], j)
+                        block_dictionary[i[12+j]] = (1, i[1], j)
                     elif j == 13:
-                        block_dictionary[int(i[12+j])] = (2, i[1], 268)
+                        block_dictionary[i[12+j]] = (2, i[1], 268)
                     elif j == 14:
-                        block_dictionary[int(i[12+j])] = (3, i[1], 65804)
+                        block_dictionary[i[12+j]] = (3, i[1], 65804)
                     
                 
     
-    print("second loop")        
+    # print("second loop")        
     for i in linesdict['INDIRECT']:
-        if int(i[5]) < 0 or int(i[5]) > num_blocks: 
+        if i[5] < 0 or i[5] > num_blocks: 
             print(i[2])
             if i[2] == '1':
                 print(f"INVALID INDIRECT BLOCK {i[5]} IN INODE {i[1]} AT OFFSET {i[3]}")
@@ -82,9 +82,9 @@ def scan_blocks():
             elif i[2] == '3':
                 print(f"INVALID TRIPLE INDIRECT BLOCK {i[5]} IN INODE {i[1]} AT OFFSET {i[3]}")
         else:
-            block_allocated_set.add(int(i[5]))
+            block_allocated_set.add(i[5])
         
-        if int(i[5]) in block_dictionary:
+        if i[5] in block_dictionary:
             if j < 12:
                 print(f"DUPLICATE BLOCK {i[5]} IN INODE {i[1]} AT OFFSET {i[3]}")
             elif j == 12:
@@ -93,16 +93,16 @@ def scan_blocks():
                 print(f"DUPLICATE DOUBLE INDIRECT BLOCK {i[5]} IN INODE {i[1]} AT OFFSET {i[3]}")
             elif j == 14:
                 print(f"DUPLICATE TRIPLE INDIRECT BLOCK {i[5]} IN INODE {i[1]} AT OFFSET {i[3]}")
-            block_printed_set.add(int(i[5]))
-        elif int(i[5]) != 0:
+            block_printed_set.add(i[5])
+        elif i[5] != 0:
             if j < 12:
-                block_dictionary[int(i[5])] = (0, i[1], i[3])
+                block_dictionary[i[5]] = (0, i[1], i[3])
             elif j == 12: 
-                block_dictionary[int(i[5])] = (1, i[1], i[3])
+                block_dictionary[i[5]] = (1, i[1], i[3])
             elif j == 13:
-                block_dictionary[int(i[5])] = (2, i[1], i[3])
+                block_dictionary[i[5]] = (2, i[1], i[3])
             elif j == 14:
-                block_dictionary[int(i[5])] = (3, i[1], i[3])
+                block_dictionary[i[5]] = (3, i[1], i[3])
             
 
     for i in block_printed_set:
@@ -129,7 +129,13 @@ def main():
                 type = line.split(',')[0]
                 if type not in linesdict:
                     linesdict[type] = []
-                linesdict[type].append(tuple(line.split(',')))
+                temp = []
+                for field in line.split(','):
+                    try:
+                        temp.append(int(field))
+                    except ValueError:
+                        temp.append(field)
+                linesdict[type].append(tuple(temp))
     except FileNotFoundError:
         print(f"{sys.argv[0]}: error opening file {sys.argv[1]}: file doesn't exist",
               file=sys.stderr)
