@@ -26,6 +26,8 @@ def check_unreferenced_blocks():
 def scan_blocks():
     boundary = 0
     for i in linesdict['INODE']:
+        double_offset = 12 + block_size/4 # 4 is the size of a block pointer (unsigned 32 bit)
+        triple_offset = double_offset + (block_size/4)**2
         if i[2] == 'f' or i[2] == 'd':
             for j in range(15):
                 if i[12+j] < 0 or i[12+j] > num_blocks:
@@ -34,18 +36,18 @@ def scan_blocks():
                     elif j == 12:
                         print(f"INVALID INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {j}")
                     elif j == 13:
-                        print(f"INVALID DOUBLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 268")
+                        print(f"INVALID DOUBLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {double_offset}")
                     elif j == 14:
-                        print(f"INVALID TRIPLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 65804")
+                        print(f"INVALID TRIPLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {triple_offset}")
                 elif i[12+j] > 0 and i[12+j] < reserved_boundary:
                     if j < 12:
                         print(f"RESERVED BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {j}")
                     elif j == 12:
                         print(f"RESERVED INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {j}")
                     elif j == 13:
-                        print(f"RESERVED DOUBLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 268")
+                        print(f"RESERVED DOUBLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {double_offset}")
                     elif j == 14:
-                        print(f"RESERVED TRIPLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 65804")
+                        print(f"RESERVED TRIPLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {triple_offset}")
                 else:
                     block_allocated_set.add(i[12+j])
 
@@ -55,9 +57,9 @@ def scan_blocks():
                     elif j == 12:
                         print(f"DUPLICATE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {j}")
                     elif j == 13:
-                        print(f"DUPLICATE DOUBLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 268")
+                        print(f"DUPLICATE DOUBLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {double_offset}")
                     elif j == 14:
-                        print(f"DUPLICATE TRIPLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET 65804")
+                        print(f"DUPLICATE TRIPLE INDIRECT BLOCK {i[12+j]} IN INODE {i[1]} AT OFFSET {triple_offset}")
                     block_printed_set.add(i[12+j])
                 elif i[12+j] != 0:
                     if j < 12:
@@ -115,7 +117,7 @@ def scan_blocks():
         elif block_dictionary[i][0] == 3:
             print(f"DUPLICATE TRIPLE BLOCK {i} IN INODE {block_dictionary[i][1]} AT OFFSET {block_dictionary[i][2]}")
 
-    return;
+    return
 
 def main():
 
@@ -142,12 +144,12 @@ def main():
         return 1
     # todo: make error handling handle all errors
     global num_blocks
-    num_blocks = int(linesdict['SUPERBLOCK'][0][1])
-
-    block_size = int(linesdict['SUPERBLOCK'][0][3])
-    inode_size = int(linesdict['SUPERBLOCK'][0][4])
-    inodes_per_block = int(block_size/inode_size)
-    inodes_per_group = int(linesdict['SUPERBLOCK'][0][6])
+    num_blocks = linesdict['SUPERBLOCK'][0][1]
+    global block_size
+    block_size = linesdict['SUPERBLOCK'][0][3]
+    inode_size = linesdict['SUPERBLOCK'][0][4]
+    inodes_per_block = block_size/inode_size # both are powers of 2
+    inodes_per_group = linesdict['SUPERBLOCK'][0][6]
     global reserved_boundary
     reserved_boundary = int(inodes_per_group/inodes_per_block) + int(linesdict['GROUP'][0][8])
 
