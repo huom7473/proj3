@@ -8,13 +8,18 @@ import sys
 linesdict = {}
 
 block_free_list_set = set()
+inode_free_list_set = set()
 block_allocated_set = set()
+inode_allocated_set = set()
 block_printed_set = set()
 block_dictionary = dict()
 
 def generate_free_list():
     for i in linesdict['BFREE']:
         block_free_list_set.add(i[1])
+    for i in linesdict['IFREE']:
+        inode_free_list_set.add(i[1])
+    
 
 def check_unreferenced_blocks():
     for i in range(reserved_boundary, num_blocks):
@@ -22,6 +27,16 @@ def check_unreferenced_blocks():
             print(f"UNREFERENCED BLOCK {i}")
         if (i in block_free_list_set) and (i in block_allocated_set):
             print(f"ALLOCATED BLOCK {i} ON FREELIST")
+
+def check_inodes():
+    for i in range(1, inode_start):
+        if i in inode_free_list_set:
+            print(f"ALLOCATED INODE {i} ON FREELIST")
+    for i in range(inode_start, num_inodes):
+        if (i not in inode_free_list_set) and (i not in inode_allocated_set):
+            print(f"UNREFERENCED INODE {i}")
+        if (i in inode_free_list_set) and (i in inode_allocated_set):
+            print(f"ALLOCATED INODE {i} ON FREELIST")
 
 def scan_blocks():
     boundary = 0
@@ -70,6 +85,8 @@ def scan_blocks():
                         block_dictionary[i[12+j]] = (2, i[1], 268)
                     elif j == 14:
                         block_dictionary[i[12+j]] = (3, i[1], 65804)
+        
+        inode_allocated_set.add(i[1])
                     
                 
     
@@ -145,17 +162,26 @@ def main():
     # todo: make error handling handle all errors
     global num_blocks
     num_blocks = linesdict['SUPERBLOCK'][0][1]
+    
+    global num_inodes
+    num_inodes = linesdict['SUPERBLOCK'][0][2]
+    
     global block_size
     block_size = linesdict['SUPERBLOCK'][0][3]
     inode_size = linesdict['SUPERBLOCK'][0][4]
     inodes_per_block = block_size/inode_size # both are powers of 2
     inodes_per_group = linesdict['SUPERBLOCK'][0][6]
+
+    global inode_start
+    inode_start = linesdict['SUPERBLOCK'][0][7]
+
     global reserved_boundary
-    reserved_boundary = int(inodes_per_group/inodes_per_block) + int(linesdict['GROUP'][0][8])
+    reserved_boundary = int(inodes_per_group/inodes_per_block) + linesdict['GROUP'][0][8]
 
     generate_free_list()
     scan_blocks()
     check_unreferenced_blocks()
+    check_inodes()
     
 if __name__ == "__main__":
     main()
