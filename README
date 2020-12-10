@@ -7,23 +7,26 @@ ID: 705408359, 705391071
 The following files have been included as per the spec's requirements:
 
 lab3b.py:
-(executable) Python source module that takes in exactly one argument, a csv
+Python source module that takes in exactly one argument, a csv
 in the format provided by the spec, and produces the required output.
+Called by lab3b.sh.
 
 Makefile:
 A Makefile implementing the targets (default, dist, and clean) required by the
 spec. 'make default' and 'make lab3b' are equivalent - they both produce the
-symlink lab3b, which points to lab3b.py.
+symlink lab3b, which points to lab3b.sh.
 
 README:
 this README.
 
+The following files were not mandated by the spec:
+
+lab3b.sh:
+A shell script that simply passes its arguments to lab3b.py, which it calls using
+the default python3 interpreter. More robust than a simple shebang line.
 >>>>END OF INCLUDED FILES<<<<
 
 >>>>NOTES<<<<
-IMPORTANT: The lab3b.py file will only execute properly on the SEASnet linux servers,
-due to the shebang line.
-
 There might be some possible file system inconsistencies that our code doesn't check
 for, since they weren't mentioned in the spec. For example, if one directory ended up
 being the child of two directories, as long as the directory was correctly listed
