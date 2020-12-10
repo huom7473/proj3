@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/local/cs/bin/python3
 # NAME: Michael Huo, Tygan Zeng
 # EMAIL: huom7473@ucla.edu, zengtygan@gmail.com
 # ID: 705408359, 705391071
