@@ -5,7 +5,7 @@
 import sys
 from collections import defaultdict
 
-linesdict = {}
+linesdict = defaultdict(list)
 
 block_free_list_set = set()
 inode_free_list_set = set()
@@ -184,8 +184,6 @@ def main():
         with open(sys.argv[1]) as csv:
             for line in csv:
                 type = line.split(',')[0]
-                if type not in linesdict:
-                    linesdict[type] = []
                 temp = []
                 for field in line.split(','):
                     try:

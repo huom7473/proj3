@@ -7,10 +7,10 @@
 default: lab3b
 
 lab3b:
-	@ln -s lab3b.py lab3b
+	@ln -s lab3b.sh lab3b
 
 clean:
 	@rm -f lab3b lab3b-705408359.tar.gz
 
 dist:
-	@tar -czf lab3b-705408359.tar.gz lab3b.py Makefile README
+	@tar -czf lab3b-705408359.tar.gz lab3b.py lab3b.sh Makefile README
