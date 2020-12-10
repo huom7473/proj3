@@ -2,18 +2,15 @@
 # EMAIL: huom7473@ucla.edu, zengtygan@gmail.com
 # ID: 705408359, 705391071
 
-CC=gcc
-CFLAGS=-Wall -Wextra
-
 .PHONY: clean dist default
 
-default: lab3a
+default: lab3b
 
-lab3a: lab3a.c ext2_fs.h
-	@$(CC) -o lab3a $(CFLAGS) lab3a.c
+lab3b:
+	@ln -s lab3b.py lab3b
 
 clean:
-	@rm -f lab3a lab3a-705408359.tar.gz
+	@rm -f lab3b lab3b-705408359.tar.gz
 
 dist:
-	@tar -czf lab3a-705408359.tar.gz lab3a.c ext2_fs.h Makefile README
+	@tar -czf lab3b-705408359.tar.gz lab3b.py Makefile README
