@@ -21,6 +21,9 @@ this README.
 >>>>END OF INCLUDED FILES<<<<
 
 >>>>NOTES<<<<
+IMPORTANT: The lab3b.py file will only execute properly on the SEASnet linux servers,
+due to the shebang line.
+
 There might be some possible file system inconsistencies that our code doesn't check
 for, since they weren't mentioned in the spec. For example, if one directory ended up
 being the child of two directories, as long as the directory was correctly listed
