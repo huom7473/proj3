@@ -36,7 +36,7 @@ def check_inodes():
             print(f"ALLOCATED INODE {i} ON FREELIST")
     for i in range(inode_start, num_inodes):
         if (i not in inode_free_list_set) and (i not in inode_allocated_set):
-            print(f"UNREFERENCED INODE {i}")
+            print(f"UNALLOCATED INODE {i} NOT ON FREELIST")
         if (i in inode_free_list_set) and (i in inode_allocated_set):
             print(f"ALLOCATED INODE {i} ON FREELIST")
 
