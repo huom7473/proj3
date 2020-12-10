@@ -1,9 +1,9 @@
 # file system stuff, project stuff
 *.img
 *.html
+*.cs
 *.csv
-fs
-lab3a
+lab3b
 
 # Prerequisites
 *.d
